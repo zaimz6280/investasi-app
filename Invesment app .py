@@ -26,18 +26,148 @@ st.set_page_config(
 )
 
 # =========================================================
+# ANIMASI OPENING "GERBANG TERBUKA" — cuma muncul sekali per sesi
+# =========================================================
+if "gerbang_terbuka" not in st.session_state:
+    st.session_state.gerbang_terbuka = True
+    st.markdown(
+        """
+        <style>
+        @keyframes bukaKiri {
+            0%   { transform: translateX(0); }
+            100% { transform: translateX(-101%); }
+        }
+        @keyframes bukaKanan {
+            0%   { transform: translateX(0); }
+            100% { transform: translateX(101%); }
+        }
+        @keyframes munculLogo {
+            0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.7); }
+            35%  { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
+            55%  { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            80%  { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+            100% { opacity: 0; }
+        }
+        #gerbang-wrapper {
+            position: fixed; inset: 0; z-index: 999999;
+            pointer-events: none;
+        }
+        #gerbang-kiri, #gerbang-kanan {
+            position: absolute; top: 0; width: 50%; height: 100%;
+            background: linear-gradient(135deg, #0a0e2a 0%, #14183f 55%, #1e0b3d 100%);
+            border-color: rgba(0, 229, 255, 0.35);
+            animation-duration: 0.9s;
+            animation-timing-function: cubic-bezier(0.76, 0, 0.24, 1);
+            animation-delay: 1.15s;
+            animation-fill-mode: forwards;
+        }
+        #gerbang-kiri {
+            left: 0; border-right: 2px solid rgba(0, 229, 255, 0.35);
+            animation-name: bukaKiri;
+            box-shadow: 8px 0 30px rgba(0, 229, 255, 0.15);
+        }
+        #gerbang-kanan {
+            right: 0; border-left: 2px solid rgba(0, 229, 255, 0.35);
+            animation-name: bukaKanan;
+            box-shadow: -8px 0 30px rgba(123, 47, 247, 0.15);
+        }
+        #gerbang-logo {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 46px; font-weight: 700; color: #e6f1ff;
+            text-shadow: 0 0 24px rgba(0, 229, 255, 0.8);
+            white-space: nowrap;
+            animation: munculLogo 1.9s ease-in-out forwards;
+        }
+        </style>
+        <div id="gerbang-wrapper">
+            <div id="gerbang-kiri"></div>
+            <div id="gerbang-kanan"></div>
+            <div id="gerbang-logo">📈 INVESTASI</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+# =========================================================
+# TEMA DARK ELECTRIC (CSS custom di atas tema dasar config.toml)
+# =========================================================
+st.markdown(
+    """
+    <style>
+    /* Latar belakang utama: gradient gelap kebiruan-ungu, bukan hitam polos */
+    .stApp {
+        background: radial-gradient(circle at 15% 0%, #131a35 0%, #0a0e17 45%, #05070d 100%);
+    }
+
+    /* Sidebar sedikit beda nuansa biar ada kedalaman */
+    section[data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #10142a 0%, #0a0e17 100%);
+        border-right: 1px solid rgba(0, 229, 255, 0.15);
+    }
+
+    /* Kartu metric (st.metric) dikasih border glow tipis */
+    div[data-testid="stMetric"] {
+        background: rgba(0, 229, 255, 0.05);
+        border: 1px solid rgba(0, 229, 255, 0.35);
+        border-radius: 12px;
+        padding: 12px 16px;
+        box-shadow: 0 0 18px rgba(0, 229, 255, 0.08);
+    }
+
+    /* Tombol utama dikasih efek glow neon */
+    div.stButton > button, .stDownloadButton > button {
+        background: linear-gradient(90deg, #00c2ff 0%, #7b2ff7 100%);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        box-shadow: 0 0 16px rgba(0, 194, 255, 0.5);
+        transition: box-shadow 0.25s ease, transform 0.15s ease;
+    }
+    div.stButton > button:hover, .stDownloadButton > button:hover {
+        box-shadow: 0 0 26px rgba(123, 47, 247, 0.7);
+        transform: translateY(-1px);
+        color: white;
+    }
+
+    /* Tabel dataframe: border tipis neon */
+    div[data-testid="stDataFrame"] {
+        border: 1px solid rgba(0, 229, 255, 0.2);
+        border-radius: 10px;
+    }
+
+    /* Judul markdown h1-h4 dikasih sedikit glow */
+    h1, h2, h3, h4 {
+        text-shadow: 0 0 14px rgba(0, 229, 255, 0.25);
+    }
+
+    /* Divider custom biar nggak garis putih polos */
+    hr {
+        border-color: rgba(0, 229, 255, 0.2) !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+# =========================================================
 # BANNER / HERO SECTION (visual, tanpa gambar eksternal)
 # =========================================================
 st.markdown(
     """
     <div style="
-        background: linear-gradient(120deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+        background: linear-gradient(120deg, #0a0e2a 0%, #14183f 45%, #1e0b3d 100%);
         padding: 28px 32px;
         border-radius: 16px;
         margin-bottom: 18px;
+        border: 1px solid rgba(0, 229, 255, 0.25);
+        box-shadow: 0 0 30px rgba(123, 47, 247, 0.15);
     ">
-        <h1 style="color:white; margin:0; font-size: 32px;">📈 Analisis & Rekomendasi Investasi</h1>
-        <p style="color:#cfe8ff; margin:6px 0 0 0; font-size: 15px;">
+        <h1 style="
+            color:#e6f1ff; margin:0; font-size: 32px;
+            text-shadow: 0 0 18px rgba(0, 229, 255, 0.5);
+        ">📈 Analisis &amp; Rekomendasi Investasi</h1>
+        <p style="color:#8fd8ff; margin:6px 0 0 0; font-size: 15px;">
             🌍 Saham &nbsp;•&nbsp; 🪙 Kripto &nbsp;•&nbsp; 📦 ETF/Reksadana &nbsp;—&nbsp;
             data real-time dari Yahoo Finance
         </p>
@@ -46,7 +176,11 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.caption("⚠️ Alat bantu analisis, bukan nasihat keuangan. *Asset of the Day* di bawah untuk contoh cepat.")
+st.markdown(
+    "<p style='font-style: italic; color: rgba(230,241,255,0.45); font-size: 12.5px; margin-top: -8px;'>"
+    "Alat bantu analisis, bukan nasihat keuangan.</p>",
+    unsafe_allow_html=True,
+)
 
 # =========================================================
 # DAFTAR ASET CONTOH (bisa ditambah/diubah pengguna)
@@ -107,11 +241,12 @@ try:
         st.markdown(
             f"""
             <div style="
-                background: {'#1f7a4d' if perubahan >= 0 else '#a13030'};
+                background: {'linear-gradient(135deg, #00c896, #00e5ff)' if perubahan >= 0 else 'linear-gradient(135deg, #ff4d6d, #ff8a00)'};
                 border-radius: 14px;
                 width: 90px; height: 90px;
                 display: flex; align-items: center; justify-content: center;
                 font-size: 42px;
+                box-shadow: 0 0 22px {'rgba(0, 229, 255, 0.5)' if perubahan >= 0 else 'rgba(255, 77, 109, 0.5)'};
             ">{CATEGORY_ICON.get(aotd_kategori, '💹')}</div>
             """,
             unsafe_allow_html=True,
@@ -251,7 +386,60 @@ def hitung_metrik(data: pd.DataFrame, risk_free_rate: float) -> dict:
         "kategori_risiko": kategori_risiko,
         "skor_mentah": skor_mentah,
         "close_series": close,
+        "ohlc_data": data,
+        "pola_candlestick": deteksi_pola_candlestick(data),
     }
+
+
+def deteksi_pola_candlestick(data: pd.DataFrame) -> str:
+    """Deteksi pola candlestick sederhana dari 2 candle terakhir (harian)."""
+    try:
+        o = data["Open"].dropna()
+        h = data["High"].dropna()
+        l = data["Low"].dropna()
+        c = data["Close"].dropna()
+        for s in (o, h, l, c):
+            if isinstance(s, pd.DataFrame):
+                s = s.iloc[:, 0]
+        if len(c) < 2:
+            return "-"
+
+        o1, h1, l1, c1 = float(o.iloc[-1]), float(h.iloc[-1]), float(l.iloc[-1]), float(c.iloc[-1])
+        o0, h0, l0, c0 = float(o.iloc[-2]), float(h.iloc[-2]), float(l.iloc[-2]), float(c.iloc[-2])
+
+        body1 = abs(c1 - o1)
+        range1 = h1 - l1 if (h1 - l1) > 0 else 1e-9
+        upper_shadow1 = h1 - max(c1, o1)
+        lower_shadow1 = min(c1, o1) - l1
+        body0 = abs(c0 - o0)
+
+        # Doji: body sangat kecil dibanding range harian
+        if body1 / range1 < 0.08:
+            return "🟨 Doji"
+
+        # Hammer: body kecil di atas, shadow bawah panjang, shadow atas pendek
+        if body1 / range1 < 0.35 and lower_shadow1 > body1 * 2 and upper_shadow1 < body1 * 0.6:
+            return "🔨 Hammer"
+
+        # Shooting Star: kebalikan Hammer, shadow atas panjang
+        if body1 / range1 < 0.35 and upper_shadow1 > body1 * 2 and lower_shadow1 < body1 * 0.6:
+            return "🌠 Shooting Star"
+
+        # Bullish Engulfing: candle merah lalu candle hijau yang "menelan" body sebelumnya
+        if c0 < o0 and c1 > o1 and c1 >= o0 and o1 <= c0 and body1 > body0:
+            return "🟢 Bullish Engulfing"
+
+        # Bearish Engulfing: kebalikannya
+        if c0 > o0 and c1 < o1 and o1 >= c0 and c1 <= o0 and body1 > body0:
+            return "🔴 Bearish Engulfing"
+
+        # Marubozu: body memenuhi hampir seluruh range (nyaris tanpa shadow)
+        if body1 / range1 > 0.92:
+            return "🟩 Marubozu Naik" if c1 > o1 else "🟥 Marubozu Turun"
+
+        return "⚪ Netral"
+    except Exception:
+        return "-"
 
 
 def label_rekomendasi(skor: float) -> str:
@@ -327,6 +515,7 @@ if run_button:
             "VaR 95% (harian)": f"{h['var_95']*100:.1f}%",
             "Prob. Hari Rugi": f"{h['prob_rugi_harian']*100:.0f}%",
             "Kategori Risiko": h["kategori_risiko"],
+            "Pola Candlestick": h["pola_candlestick"],
             "Sinyal": label_rekomendasi(h["skor_normal"]),
         })
 
@@ -382,6 +571,55 @@ if run_button:
     )
     st.plotly_chart(fig_harga, use_container_width=True)
 
+    # ---------------- GRAFIK CANDLESTICK & POLA ----------------
+    st.subheader("🕯️ Grafik Candlestick & Deteksi Pola")
+    st.caption(
+        "Pola candlestick dideteksi dari 2 candle harian terakhir. Ini sinyal jangka pendek "
+        "(bukan jaminan arah harga) — tetap kombinasikan dengan metrik risiko di atas."
+    )
+
+    pilihan_candle = st.selectbox(
+        "Pilih aset untuk lihat candlestick-nya",
+        options=[h["ticker"] for h in hasil_sorted],
+        key="pilihan_candlestick",
+    )
+    h_terpilih = next(h for h in hasil_sorted if h["ticker"] == pilihan_candle)
+    ohlc = h_terpilih["ohlc_data"].tail(60)  # 60 candle terakhir biar nggak terlalu padat
+
+    op = ohlc["Open"]; hi = ohlc["High"]; lo = ohlc["Low"]; cl = ohlc["Close"]
+    if isinstance(op, pd.DataFrame): op = op.iloc[:, 0]
+    if isinstance(hi, pd.DataFrame): hi = hi.iloc[:, 0]
+    if isinstance(lo, pd.DataFrame): lo = lo.iloc[:, 0]
+    if isinstance(cl, pd.DataFrame): cl = cl.iloc[:, 0]
+
+    fig_candle = go.Figure(data=[go.Candlestick(
+        x=ohlc.index, open=op, high=hi, low=lo, close=cl,
+        increasing_line_color="#00e5ff", decreasing_line_color="#ff4d6d",
+        increasing_fillcolor="rgba(0,229,255,0.5)", decreasing_fillcolor="rgba(255,77,109,0.5)",
+    )])
+    fig_candle.update_layout(
+        height=520,
+        xaxis_rangeslider_visible=False,
+        plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="#e6f1ff"),
+        xaxis=dict(gridcolor="rgba(255,255,255,0.06)"),
+        yaxis=dict(gridcolor="rgba(255,255,255,0.06)", title="Harga"),
+    )
+    st.plotly_chart(fig_candle, use_container_width=True)
+
+    st.markdown(f"**Pola terdeteksi (candle terakhir {pilihan_candle}):** {h_terpilih['pola_candlestick']}")
+
+    with st.expander("📖 Arti pola-pola yang bisa terdeteksi"):
+        st.markdown("""
+        - 🟨 **Doji** — harga buka & tutup nyaris sama → pasar ragu-ragu, bisa jadi tanda pembalikan arah
+        - 🔨 **Hammer** — body kecil di atas, ekor bawah panjang → tekanan jual mereda, potensi pembalikan naik (biasanya setelah tren turun)
+        - 🌠 **Shooting Star** — kebalikan Hammer, ekor atas panjang → potensi pembalikan turun (biasanya setelah tren naik)
+        - 🟢 **Bullish Engulfing** — candle hijau "menelan" candle merah sebelumnya → momentum beli menguat
+        - 🔴 **Bearish Engulfing** — candle merah "menelan" candle hijau sebelumnya → momentum jual menguat
+        - 🟩/🟥 **Marubozu** — body penuh nyaris tanpa ekor → tren sangat kuat searah body-nya
+        - ⚪ **Netral** — tidak ada pola dominan yang terdeteksi hari itu
+        """)
+
     # ---------------- DETAIL PER ASET ----------------
     with st.expander("📋 Lihat detail metrik per aset"):
         for h in hasil_sorted:
@@ -407,9 +645,10 @@ else:
     - 📊 Menghitung metrik risiko: volatilitas, Sharpe Ratio, Max Drawdown, Value at Risk (VaR)
     - 🎯 Memetakan aset berdasarkan risiko vs return dalam satu grafik
     - 🏆 Memberi skor & sinyal relatif antar aset yang kamu pilih
-
-    ### Yang TIDAK dilakukan aplikasi ini
-    - ❌ Tidak memprediksi harga masa depan
-    - ❌ Tidak memberi jaminan keuntungan
-    - ❌ Tidak menggantikan riset fundamental atau nasihat profesional
+    - 🕯️ Mendeteksi pola candlestick sederhana dari data harian
     """)
+    st.markdown(
+        "<p style='font-style: italic; color: rgba(230,241,255,0.4); font-size: 12.5px;'>"
+        "Tidak memprediksi harga masa depan atau menggantikan riset profesional.</p>",
+        unsafe_allow_html=True,
+    )
