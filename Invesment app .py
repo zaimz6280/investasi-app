@@ -9,6 +9,7 @@ Semua keputusan investasi tetap menjadi tanggung jawab pengguna.
 """
 
 import streamlit as st
+import streamlit.components.v1 as components
 import yfinance as yf
 import pandas as pd
 import numpy as np
@@ -26,6 +27,27 @@ st.set_page_config(
 )
 
 # =========================================================
+# SUKU BUNGA BEBAS RISIKO OTOMATIS (^IRX = obligasi AS 13 minggu, ~1 kuartal)
+# =========================================================
+@st.cache_data(ttl=3600, show_spinner=False)
+def ambil_suku_bunga_otomatis() -> float:
+    """Ambil suku bunga bebas risiko dari yield obligasi pemerintah AS 13 minggu (^IRX, ~1 kuartal)."""
+    try:
+        data = yf.download("^IRX", period="5d", progress=False, auto_adjust=True)
+        close = data["Close"].dropna()
+        if isinstance(close, pd.DataFrame):
+            close = close.iloc[:, 0]
+        nilai_persen = float(close.iloc[-1])
+        # Validasi kewajaran: yield jangka pendek biasanya di rentang 0.1%-15%
+        if 0.1 <= nilai_persen <= 15:
+            return nilai_persen / 100
+        return 0.04  # fallback kalau angkanya di luar rentang wajar
+    except Exception:
+        return 0.04  # fallback default 4% kalau gagal ambil data
+
+suku_bunga_otomatis = ambil_suku_bunga_otomatis()
+
+# =========================================================
 # ANIMASI OPENING "GERBANG TERBUKA" — cuma muncul sekali per sesi
 # =========================================================
 if "gerbang_terbuka" not in st.session_state:
@@ -41,52 +63,273 @@ if "gerbang_terbuka" not in st.session_state:
             0%   { transform: translateX(0); }
             100% { transform: translateX(101%); }
         }
+        @keyframes putarRoda {
+            0%   { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(1080deg); }
+        }
+        @keyframes hilangRoda {
+            0%   { opacity: 1; transform: translate(-50%, -50%) rotate(1080deg) scale(1); }
+            100% { opacity: 0; transform: translate(-50%, -50%) rotate(1260deg) scale(0.5); }
+        }
         @keyframes munculLogo {
-            0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.7); }
-            35%  { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
-            55%  { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-            80%  { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+            0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.85); }
+            30%  { opacity: 0; }
+            45%  { opacity: 1; transform: translate(-50%, -50%) scale(1.03); }
+            65%  { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            88%  { opacity: 0; }
             100% { opacity: 0; }
         }
+        @keyframes electricFlow {
+            to { stroke-dashoffset: -692; }
+        }
+
         #gerbang-wrapper {
             position: fixed; inset: 0; z-index: 999999;
-            pointer-events: none;
+            pointer-events: none; overflow: hidden;
+            background: #05070d;
         }
+
+        #electric-svg {
+            position: absolute; inset: 0; width: 100%; height: 100%;
+            mix-blend-mode: screen; opacity: 0.75;
+        }
+        /* Garis dasar: solid, lurus/utuh, tidak putus-putus */
+        .electric-base { fill: none; stroke-width: 1.8; opacity: 0.4; }
+        .electric-base.cyan { stroke: #00e5ff; }
+        .electric-base.purple { stroke: #7b2ff7; }
+        /* Percikan yang mengalir DI ATAS garis dasar (ini yang bergerak) */
+        .electric-spark {
+            fill: none; stroke-width: 3; stroke-linecap: round;
+            stroke-dasharray: 26 320;
+            animation: electricFlow 1.8s linear infinite;
+            filter: drop-shadow(0 0 5px currentColor);
+        }
+        .electric-spark.cyan { stroke: #baf9ff; }
+        .electric-spark.purple { stroke: #e6d1ff; }
+
+        /* ===== PANEL VAULT (pintu brankas kiri & kanan) ===== */
         #gerbang-kiri, #gerbang-kanan {
             position: absolute; top: 0; width: 50%; height: 100%;
-            background: linear-gradient(135deg, #0a0e2a 0%, #14183f 55%, #1e0b3d 100%);
-            border-color: rgba(0, 229, 255, 0.35);
+            background:
+                radial-gradient(circle at 22% 28%, rgba(150,90,40,0.30) 0%, rgba(150,90,40,0) 13%),
+                radial-gradient(circle at 75% 65%, rgba(140,80,35,0.25) 0%, rgba(140,80,35,0) 11%),
+                radial-gradient(circle at 45% 85%, rgba(120,70,30,0.22) 0%, rgba(120,70,30,0) 9%),
+                linear-gradient(135deg, #4a4f5a 0%, #2c2f37 45%, #16181d 100%);
+            box-shadow: inset 0 0 60px rgba(0,0,0,0.65);
             animation-duration: 0.9s;
             animation-timing-function: cubic-bezier(0.76, 0, 0.24, 1);
-            animation-delay: 1.15s;
+            animation-delay: 1.35s;
             animation-fill-mode: forwards;
         }
         #gerbang-kiri {
-            left: 0; border-right: 2px solid rgba(0, 229, 255, 0.35);
-            animation-name: bukaKiri;
-            box-shadow: 8px 0 30px rgba(0, 229, 255, 0.15);
+            left: 0; animation-name: bukaKiri;
+            box-shadow: inset 0 0 60px rgba(0,0,0,0.65), 8px 0 30px rgba(0, 229, 255, 0.15);
         }
         #gerbang-kanan {
-            right: 0; border-left: 2px solid rgba(0, 229, 255, 0.35);
-            animation-name: bukaKanan;
-            box-shadow: -8px 0 30px rgba(123, 47, 247, 0.15);
+            right: 0; animation-name: bukaKanan;
+            box-shadow: inset 0 0 60px rgba(0,0,0,0.65), -8px 0 30px rgba(123, 47, 247, 0.15);
         }
+        /* Baris paku/rivet besi di tepi dalam tiap panel */
+        #gerbang-kiri::before, #gerbang-kanan::before {
+            content: ''; position: absolute; top: 0; bottom: 0; width: 16px;
+            background-image: radial-gradient(circle, #8a8f96 3px, transparent 3.6px);
+            background-size: 22px 32px; background-repeat: repeat-y;
+            opacity: 0.85;
+        }
+        #gerbang-kiri::before { right: 26px; }
+        #gerbang-kanan::before { left: 26px; }
+        /* Goresan karat memanjang tambahan */
+        #gerbang-kiri::after, #gerbang-kanan::after {
+            content: ''; position: absolute; inset: 0;
+            background:
+                linear-gradient(100deg, transparent 40%, rgba(130,75,35,0.12) 50%, transparent 60%),
+                linear-gradient(20deg, transparent 60%, rgba(130,75,35,0.10) 68%, transparent 76%);
+        }
+
+        /* ===== RODA PEMUTAR: SETIR KAPAL DARI LOGAM BERKARAT ===== */
+        #vault-wheel {
+            position: absolute; top: 50%; left: 50%;
+            width: 240px; height: 240px;
+            z-index: 10;
+            animation: putarRoda 1.1s cubic-bezier(0.25, 0.85, 0.35, 1) forwards,
+                       hilangRoda 0.35s ease-in forwards;
+            animation-delay: 0s, 1.05s;
+        }
+        /* Pelek luar (rim) — cincin logam, tengah tembus (bukan cakram penuh) */
+        .wheel-ring {
+            position: absolute; inset: 48px; border-radius: 50%;
+            background:
+                radial-gradient(circle at 25% 20%, rgba(160,95,40,0.28) 0%, rgba(160,95,40,0) 12%),
+                radial-gradient(circle at 70% 75%, rgba(140,80,35,0.24) 0%, rgba(140,80,35,0) 10%),
+                radial-gradient(circle at 35% 30%, #9a9fa6, #4a4d52 55%, #202226 90%);
+            border: 13px solid #5b5f66;
+            box-shadow: 0 0 30px rgba(0,0,0,0.7), inset 0 0 20px rgba(0,0,0,0.75),
+                        0 0 26px rgba(0, 229, 255, 0.2);
+        }
+        /* Alur/rib melingkar di pelek, kesan logam ditempa/dibubut */
+        .wheel-ring::before {
+            content: ''; position: absolute; inset: -13px; border-radius: 50%;
+            background: repeating-conic-gradient(
+                from 0deg,
+                rgba(255,255,255,0.10) 0deg 3deg,
+                rgba(0,0,0,0.18) 3deg 7deg
+            );
+            mix-blend-mode: overlay;
+        }
+        .wheel-ring::after {
+            content: ''; position: absolute; inset: 11px; border-radius: 50%;
+            border: 2px dashed rgba(0,0,0,0.4);
+        }
+        /* Jari-jari roda (spoke) — pivot presisi di titik pusat roda via margin, bukan translate% */
+        .wheel-spoke {
+            position: absolute; top: 50%; left: 50%;
+            margin-left: -5.5px; /* setengah lebar (11px), biar pivot pas di tengah tanpa translate rancu */
+            width: 11px; height: 80px;
+            background:
+                radial-gradient(circle at 30% 65%, rgba(150,85,35,0.35) 0%, rgba(150,85,35,0) 12%),
+                linear-gradient(180deg, #9298a0, #6b6f76 55%, #3a3d43);
+            border-radius: 4px;
+            box-shadow: 0 0 9px rgba(0,0,0,0.5);
+            transform-origin: top center; /* pivot = titik pusat roda */
+        }
+        /* Leher penghubung ke pegangan — nyambung di ujung luar jari-jari */
+        .wheel-spoke::before {
+            content: ''; position: absolute; top: 77px; left: 50%;
+            width: 8px; height: 16px;
+            transform: translateX(-50%);
+            background: linear-gradient(180deg, #6b6f76, #4a4d52);
+            border-radius: 3px;
+        }
+        /* Pegangan menggelembung (baluster) — pas nempel ujung pelek, tidak melayang */
+        .wheel-spoke::after {
+            content: '';
+            position: absolute; top: 86px; left: 50%;
+            width: 24px; height: 26px;
+            transform: translateX(-50%);
+            border-radius: 50% 50% 40% 40% / 60% 60% 40% 40%;
+            background:
+                radial-gradient(circle at 30% 22%, rgba(150,85,35,0.4) 0%, rgba(150,85,35,0) 30%),
+                radial-gradient(ellipse at 35% 30%, #c3c8ce 0%, #8a8f96 45%, #4a4d52 85%);
+            box-shadow: 0 0 12px rgba(0,0,0,0.6), inset -3px -3px 5px rgba(0,0,0,0.45),
+                        inset 3px 3px 4px rgba(255,255,255,0.15);
+            border: 1.5px solid rgba(150,85,35,0.4);
+        }
+        .spoke0 { transform: rotate(0deg); }
+        .spoke1 { transform: rotate(45deg); }
+        .spoke2 { transform: rotate(90deg); }
+        .spoke3 { transform: rotate(135deg); }
+        .spoke4 { transform: rotate(180deg); }
+        .spoke5 { transform: rotate(225deg); }
+        .spoke6 { transform: rotate(270deg); }
+        .spoke7 { transform: rotate(315deg); }
+        /* Poros tengah (hub) */
+        .wheel-center {
+            position: absolute; top: 50%; left: 50%;
+            width: 54px; height: 54px; transform: translate(-50%, -50%);
+            border-radius: 50%;
+            background: radial-gradient(circle at 35% 30%, #d8dce1, #74787f 55%, #303236);
+            box-shadow: 0 0 20px rgba(0, 229, 255, 0.5), inset 0 0 9px rgba(0,0,0,0.5);
+            border: 3px solid rgba(150,85,35,0.35);
+        }
+        .wheel-center::after {
+            content: ''; position: absolute; inset: 14px; border-radius: 50%;
+            border: 1.5px solid rgba(0,0,0,0.35);
+        }
+
+        /* ===== TEKS SAPAAN (diterangin, kontras tinggi) ===== */
         #gerbang-logo {
             position: absolute; top: 50%; left: 50%;
             transform: translate(-50%, -50%);
-            font-size: 46px; font-weight: 700; color: #e6f1ff;
-            text-shadow: 0 0 24px rgba(0, 229, 255, 0.8);
+            width: 92%; max-width: 680px;
+            text-align: center; z-index: 20;
             white-space: nowrap;
-            animation: munculLogo 1.9s ease-in-out forwards;
+            animation: munculLogo 2.1s ease-in-out forwards;
+        }
+        #gerbang-logo .baris1 {
+            display: block; font-size: 32px; font-weight: 800;
+            letter-spacing: 1px; color: #ffffff;
+            text-shadow: 0 0 10px #ffffff, 0 0 26px rgba(0, 229, 255, 0.9);
+        }
+        #gerbang-logo .baris2 {
+            display: block; font-size: 16px; font-weight: 500;
+            color: #d6f3ff; margin-top: 8px; letter-spacing: 0.5px;
+            text-shadow: 0 0 8px rgba(255,255,255,0.6), 0 0 16px rgba(0, 229, 255, 0.7);
         }
         </style>
+
         <div id="gerbang-wrapper">
+            <svg id="electric-svg" viewBox="0 0 1000 600" preserveAspectRatio="none">
+                <polyline class="electric-base cyan" points="0,80 120,60 180,140 300,90 380,180 520,110"/>
+                <polyline class="electric-base cyan" points="1000,480 880,500 820,420 700,470 640,380 500,440"/>
+                <polyline class="electric-base purple" points="0,520 100,540 160,470 260,510 320,430 460,480"/>
+                <polyline class="electric-base purple" points="1000,60 900,90 840,20 720,70 660,10 540,55"/>
+                <polyline class="electric-base cyan" points="0,300 90,285 150,320 240,290 300,330 400,300"/>
+                <polyline class="electric-base purple" points="1000,300 910,315 850,280 760,310 700,270 600,300"/>
+
+                <polyline class="electric-spark cyan" points="0,80 120,60 180,140 300,90 380,180 520,110"/>
+                <polyline class="electric-spark cyan" points="1000,480 880,500 820,420 700,470 640,380 500,440"/>
+                <polyline class="electric-spark purple" points="0,520 100,540 160,470 260,510 320,430 460,480"/>
+                <polyline class="electric-spark purple" points="1000,60 900,90 840,20 720,70 660,10 540,55"/>
+                <polyline class="electric-spark cyan" points="0,300 90,285 150,320 240,290 300,330 400,300"/>
+                <polyline class="electric-spark purple" points="1000,300 910,315 850,280 760,310 700,270 600,300"/>
+            </svg>
+
             <div id="gerbang-kiri"></div>
             <div id="gerbang-kanan"></div>
-            <div id="gerbang-logo">📈 INVESTASI</div>
+
+            <div id="vault-wheel">
+                <div class="wheel-ring"></div>
+                <div class="wheel-spoke spoke0"></div>
+                <div class="wheel-spoke spoke1"></div>
+                <div class="wheel-spoke spoke2"></div>
+                <div class="wheel-spoke spoke3"></div>
+                <div class="wheel-spoke spoke4"></div>
+                <div class="wheel-spoke spoke5"></div>
+                <div class="wheel-spoke spoke6"></div>
+                <div class="wheel-spoke spoke7"></div>
+                <div class="wheel-center"></div>
+            </div>
+
+            <div id="gerbang-logo">
+                <span class="baris1">Hello, Sir.</span>
+                <span class="baris2">Welcome with your loyalty partner.</span>
+            </div>
         </div>
         """,
         unsafe_allow_html=True,
+    )
+
+    # --- Suara sapaan (Web Speech API, jalan lewat iframe komponen) ---
+    components.html(
+        """
+        <script>
+        (function() {
+            try {
+                const synth = window.speechSynthesis;
+                const utter = new SpeechSynthesisUtterance("Hello, sir. Welcome with your loyalty partner.");
+
+                function pilihSuaraLaluBicara() {
+                    const voices = synth.getVoices();
+                    let suara = voices.find(v => /en/i.test(v.lang) && /male|david|daniel|google uk english male/i.test(v.name));
+                    if (!suara) suara = voices.find(v => /en/i.test(v.lang));
+                    if (suara) utter.voice = suara;
+                    utter.pitch = 0.75;   // sedikit lebih rendah, kesan robotik
+                    utter.rate = 0.92;    // sedikit lebih lambat, kesan tenang & elegan
+                    synth.speak(utter);
+                }
+
+                if (synth.getVoices().length === 0) {
+                    synth.onvoiceschanged = pilihSuaraLaluBicara;
+                } else {
+                    pilihSuaraLaluBicara();
+                }
+            } catch (e) {
+                console.log("Speech synthesis tidak didukung/diblokir:", e);
+            }
+        })();
+        </script>
+        """,
+        height=0,
     )
 
 # =========================================================
@@ -179,6 +422,66 @@ st.markdown(
 st.markdown(
     "<p style='font-style: italic; color: rgba(230,241,255,0.45); font-size: 12.5px; margin-top: -8px;'>"
     "Alat bantu analisis, bukan nasihat keuangan.</p>",
+    unsafe_allow_html=True,
+)
+
+# =========================================================
+# BADGE KANAN ATAS — Suku Bunga Otomatis (efek hijau glitter)
+# =========================================================
+st.markdown(
+    f"""
+    <style>
+    @keyframes glitterShine {{
+        0%   {{ background-position: 0% 50%; }}
+        100% {{ background-position: 200% 50%; }}
+    }}
+    @keyframes glitterPulse {{
+        0%, 100% {{ text-shadow: 0 0 8px rgba(80,255,150,0.6), 0 0 18px rgba(80,255,150,0.4); }}
+        50%      {{ text-shadow: 0 0 14px rgba(140,255,190,0.9), 0 0 28px rgba(80,255,150,0.6); }}
+    }}
+    @keyframes sparkleBlink {{
+        0%, 100% {{ opacity: 0.2; transform: scale(0.8); }}
+        50%      {{ opacity: 1;   transform: scale(1.15); }}
+    }}
+    #suku-bunga-badge {{
+        position: fixed; top: 14px; right: 18px; z-index: 100000;
+        background: rgba(6, 20, 14, 0.55);
+        border: 1px solid rgba(80, 255, 150, 0.35);
+        border-radius: 12px;
+        padding: 8px 16px;
+        backdrop-filter: blur(6px);
+        box-shadow: 0 0 20px rgba(80, 255, 150, 0.15);
+        text-align: right;
+        pointer-events: none;
+    }}
+    #suku-bunga-badge .label {{
+        display: block; font-size: 10.5px; letter-spacing: 0.5px;
+        color: rgba(200, 255, 220, 0.65); margin-bottom: 2px;
+    }}
+    #suku-bunga-badge .nilai {{
+        font-size: 22px; font-weight: 800;
+        background: linear-gradient(90deg, #4dffa0, #b8ffd9, #4dffa0, #7dffb8);
+        background-size: 200% auto;
+        -webkit-background-clip: text; background-clip: text;
+        -webkit-text-fill-color: transparent;
+        animation: glitterShine 2.5s linear infinite, glitterPulse 1.8s ease-in-out infinite;
+    }}
+    #suku-bunga-badge .sparkle {{
+        display: inline-block; margin-left: 3px; font-size: 13px;
+        animation: sparkleBlink 1.4s ease-in-out infinite;
+    }}
+    #suku-bunga-badge .sparkle.s2 {{ animation-delay: 0.5s; }}
+    @media (max-width: 640px) {{
+        #suku-bunga-badge {{ top: 8px; right: 8px; padding: 6px 12px; }}
+        #suku-bunga-badge .nilai {{ font-size: 17px; }}
+    }}
+    </style>
+    <div id="suku-bunga-badge">
+        <span class="label">📡 Suku Bunga (13 Minggu / ~1 Kuartal)</span>
+        <span class="nilai">{suku_bunga_otomatis*100:.2f}%</span>
+        <span class="sparkle s1">✨</span><span class="sparkle s2">✨</span>
+    </div>
+    """,
     unsafe_allow_html=True,
 )
 
@@ -303,11 +606,20 @@ with st.sidebar:
         index=2,
     )
 
-    risk_free_rate = st.slider(
-        "Suku bunga bebas risiko tahunan (%) — untuk Sharpe Ratio",
-        min_value=0.0, max_value=15.0, value=6.0, step=0.5,
-        help="Contoh: gunakan perkiraan BI Rate atau suku bunga deposito.",
-    ) / 100
+    st.markdown("**Suku bunga bebas risiko** _(untuk Sharpe Ratio)_")
+    gunakan_manual = st.checkbox(
+        "Atur manual (bukan otomatis)",
+        value=False,
+        help="Defaultnya otomatis, diambil dari yield obligasi pemerintah AS 13 minggu (^IRX, ~1 kuartal) — durasi pendek, lebih responsif ke kondisi terkini.",
+    )
+    if gunakan_manual:
+        risk_free_rate = st.slider(
+            "Suku bunga bebas risiko tahunan (%)",
+            min_value=0.0, max_value=15.0, value=6.0, step=0.5,
+        ) / 100
+    else:
+        risk_free_rate = suku_bunga_otomatis
+        st.caption(f"📡 Otomatis: **{risk_free_rate*100:.2f}%** (yield obligasi AS 13 minggu, ^IRX)")
 
     run_button = st.button("🔍 Jalankan Analisis", type="primary", use_container_width=True)
 
