@@ -52,9 +52,10 @@ suku_bunga_otomatis = ambil_suku_bunga_otomatis()
 # =========================================================
 if "gerbang_terbuka" not in st.session_state:
     st.session_state.gerbang_terbuka = True
-    st.markdown(
+    components.html(
         """
         <style>
+        html, body { margin: 0; padding: 0; overflow: hidden; }
         @keyframes bukaKiri {
             0%   { transform: translateX(0); }
             100% { transform: translateX(-101%); }
@@ -183,16 +184,16 @@ if "gerbang_terbuka" not in st.session_state:
         /* Jari-jari roda (spoke) — pivot presisi di titik pusat roda via margin, bukan translate% */
         .wheel-spoke {
             position: absolute; top: 50%; left: 50%;
-            margin-left: -5.5px; /* setengah lebar (11px), biar pivot pas di tengah tanpa translate rancu */
+            margin-left: -5.5px;
             width: 11px; height: 80px;
             background:
                 radial-gradient(circle at 30% 65%, rgba(150,85,35,0.35) 0%, rgba(150,85,35,0) 12%),
                 linear-gradient(180deg, #9298a0, #6b6f76 55%, #3a3d43);
             border-radius: 4px;
             box-shadow: 0 0 9px rgba(0,0,0,0.5);
-            transform-origin: top center; /* pivot = titik pusat roda */
+            transform-origin: top center;
         }
-        /* Leher penghubung ke pegangan — nyambung di ujung luar jari-jari */
+        /* Leher penghubung ke pegangan */
         .wheel-spoke::before {
             content: ''; position: absolute; top: 77px; left: 50%;
             width: 8px; height: 16px;
@@ -200,7 +201,7 @@ if "gerbang_terbuka" not in st.session_state:
             background: linear-gradient(180deg, #6b6f76, #4a4d52);
             border-radius: 3px;
         }
-        /* Pegangan menggelembung (baluster) — pas nempel ujung pelek, tidak melayang */
+        /* Pegangan menggelembung (baluster) */
         .wheel-spoke::after {
             content: '';
             position: absolute; top: 86px; left: 50%;
@@ -236,7 +237,7 @@ if "gerbang_terbuka" not in st.session_state:
             border: 1.5px solid rgba(0,0,0,0.35);
         }
 
-        /* ===== TEKS SAPAAN (diterangin, kontras tinggi) ===== */
+        /* ===== TEKS SAPAAN ===== */
         #gerbang-logo {
             position: absolute; top: 50%; left: 50%;
             transform: translate(-50%, -50%);
@@ -295,29 +296,49 @@ if "gerbang_terbuka" not in st.session_state:
                 <span class="baris2">Welcome with your loyalty partner.</span>
             </div>
         </div>
-        """,
-        unsafe_allow_html=True,
-    )
 
-    # --- Suara sapaan (Web Speech API, jalan lewat iframe komponen) ---
-    components.html(
-        """
         <script>
+        // Trik: bikin iframe komponen ini "menyamar" jadi overlay full-screen
+        try {
+            const frame = window.frameElement;
+            if (frame) {
+                frame.style.position = 'fixed';
+                frame.style.top = '0';
+                frame.style.left = '0';
+                frame.style.width = '100vw';
+                frame.style.height = '100vh';
+                frame.style.border = 'none';
+                frame.style.zIndex = '999999';
+                frame.style.pointerEvents = 'none';
+            }
+        } catch (e) { console.log('Resize frame gagal:', e); }
+
+        // Setelah animasi selesai (~2.5 detik), sembunyikan iframe biar tidak menghalangi halaman
+        setTimeout(function() {
+            try {
+                const frame = window.frameElement;
+                if (frame) {
+                    frame.style.width = '0px';
+                    frame.style.height = '0px';
+                    frame.style.display = 'none';
+                }
+            } catch (e) {}
+        }, 2500);
+
+        // Suara sapaan (Web Speech API)
         (function() {
             try {
                 const synth = window.speechSynthesis;
                 const utter = new SpeechSynthesisUtterance("Hello, sir. Welcome with your loyalty partner.");
-
                 function pilihSuaraLaluBicara() {
                     const voices = synth.getVoices();
                     let suara = voices.find(v => /en/i.test(v.lang) && /male|david|daniel|google uk english male/i.test(v.name));
                     if (!suara) suara = voices.find(v => /en/i.test(v.lang));
                     if (suara) utter.voice = suara;
-                    utter.pitch = 0.75;   // sedikit lebih rendah, kesan robotik
-                    utter.rate = 0.92;    // sedikit lebih lambat, kesan tenang & elegan
+                    utter.pitch = 0.75;
+                    utter.rate = 0.92;
                     synth.speak(utter);
                 }
-
                 if (synth.getVoices().length === 0) {
                     synth.onvoiceschanged = pilihSuaraLaluBicara;
                 } else {
